@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadData();
     setDefaultDates();
+    updateDashboard();
 });
 
 // 初始化应用
@@ -36,7 +37,7 @@ function setupEventListeners() {
     document.getElementById('bmrForm').addEventListener('submit', handleBMRSubmit);
     
     // 目标按钮点击
-    document.querySelectorAll('.btn-goal').forEach(btn => {
+    document.querySelectorAll('.goal-btn').forEach(btn => {
         btn.addEventListener('click', () => setGoal(btn.dataset.goal));
     });
 
@@ -49,14 +50,8 @@ function setupEventListeners() {
     // 营养素计算
     document.getElementById('calculateMacros').addEventListener('click', calculateMacros);
     
-    // 食物库表单提交
-    document.getElementById('foodBankForm').addEventListener('submit', handleFoodBankSubmit);
-    
-    // 食物搜索
-    document.getElementById('foodSearch').addEventListener('input', filterFoodBank);
-    
     // 宏量营养素比例输入验证
-    document.querySelectorAll('.macro-input input').forEach(input => {
+    document.querySelectorAll('.ratio-input input').forEach(input => {
         input.addEventListener('input', validateMacroRatios);
     });
 }
@@ -87,15 +82,74 @@ function switchTab(tabName) {
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     
     // 根据标签更新数据
-    if (tabName === 'food') {
+    if (tabName === 'dashboard') {
+        updateDashboard();
+    } else if (tabName === 'food') {
         updateFoodStats();
         renderTodayFoodList();
+        renderQuickFoodBank();
     } else if (tabName === 'weight') {
         updateWeightStats();
         renderWeightHistory();
-    } else if (tabName === 'foodbank') {
-        renderFoodBank();
     }
+}
+
+// 更新概览页面
+function updateDashboard() {
+    updateTodayOverview();
+    renderRecentRecords();
+}
+
+// 更新今日概览
+function updateTodayOverview() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayFoods = foodRecords.filter(food => food.date === today);
+    const todayConsumed = todayFoods.reduce((sum, food) => sum + food.calories, 0);
+    const todayTarget = targetCalories || currentTDEE;
+    const todayRemaining = Math.max(0, todayTarget - todayConsumed);
+    const progressPercent = todayTarget > 0 ? Math.min(100, (todayConsumed / todayTarget) * 100) : 0;
+    
+    // 更新显示
+    document.getElementById('todayTarget').textContent = todayTarget + ' 卡';
+    document.getElementById('todayConsumed').textContent = todayConsumed + ' 卡';
+    document.getElementById('todayRemaining').textContent = todayRemaining + ' 卡';
+    
+    // 更新进度条
+    const progressFill = document.getElementById('todayProgress');
+    if (progressFill) {
+        progressFill.style.width = progressPercent + '%';
+    }
+}
+
+// 渲染最近记录
+function renderRecentRecords() {
+    const container = document.getElementById('recentFoodList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // 获取最近5条食物记录
+    const recentFoods = [...foodRecords]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 5);
+    
+    if (recentFoods.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; font-size: 0.9rem;">还没有食物记录</p>';
+        return;
+    }
+    
+    recentFoods.forEach(food => {
+        const recordItem = document.createElement('div');
+        recordItem.className = 'record-item';
+        recordItem.style.cssText = 'background: #f8f9fa; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.9rem;';
+        recordItem.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><strong>${food.name}</strong> - ${food.calories} 卡</span>
+                <span style="color: #666; font-size: 0.8rem;">${formatDate(food.date)}</span>
+            </div>
+        `;
+        container.appendChild(recordItem);
+    });
 }
 
 // 处理BMR表单提交
@@ -131,6 +185,9 @@ function handleBMRSubmit(e) {
     // 更新营养素计算器的目标热量
     document.getElementById('targetCaloriesInput').value = currentTDEE;
     
+    // 更新概览页面
+    updateDashboard();
+    
     // 保存数据
     saveData();
 }
@@ -138,7 +195,7 @@ function handleBMRSubmit(e) {
 // 设置目标
 function setGoal(goal) {
     // 移除所有目标按钮的active状态
-    document.querySelectorAll('.btn-goal').forEach(btn => {
+    document.querySelectorAll('.goal-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
@@ -160,6 +217,9 @@ function setGoal(goal) {
     
     // 更新营养素计算器的目标热量
     document.getElementById('targetCaloriesInput').value = targetCalories;
+    
+    // 更新概览页面
+    updateDashboard();
     
     // 保存数据
     saveData();
@@ -194,6 +254,7 @@ function handleFoodSubmit(e) {
     // 更新显示
     updateFoodStats();
     renderTodayFoodList();
+    updateDashboard();
     
     // 保存数据
     saveData();
@@ -229,40 +290,6 @@ function handleWeightSubmit(e) {
     saveData();
 }
 
-// 处理食物库表单提交
-function handleFoodBankSubmit(e) {
-    e.preventDefault();
-    
-    const foodName = document.getElementById('bankFoodName').value;
-    const foodCalories = parseInt(document.getElementById('bankFoodCalories').value);
-    const protein = parseFloat(document.getElementById('bankProtein').value) || 0;
-    const carbs = parseFloat(document.getElementById('bankCarbs').value) || 0;
-    const fat = parseFloat(document.getElementById('bankFat').value) || 0;
-    
-    // 创建食物库项目
-    const foodBankItem = {
-        id: Date.now(),
-        name: foodName,
-        calories: foodCalories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat,
-        timestamp: new Date().toISOString()
-    };
-    
-    // 添加到食物库
-    foodBank.push(foodBankItem);
-    
-    // 清空表单
-    e.target.reset();
-    
-    // 更新显示
-    renderFoodBank();
-    
-    // 保存数据
-    saveData();
-}
-
 // 计算营养素需求
 function calculateMacros() {
     const targetCalories = parseInt(document.getElementById('targetCaloriesInput').value);
@@ -286,14 +313,14 @@ function calculateMacros() {
     const fatGrams = fatCalories / 9;
     
     // 显示结果
-    document.getElementById('proteinGrams').textContent = Math.round(proteinGrams) + ' g';
-    document.getElementById('proteinCalories').textContent = Math.round(proteinCalories) + ' 卡路里';
+    document.getElementById('proteinGrams').textContent = Math.round(proteinGrams);
+    document.getElementById('proteinCalories').textContent = Math.round(proteinCalories) + ' 卡';
     
-    document.getElementById('carbGrams').textContent = Math.round(carbGrams) + ' g';
-    document.getElementById('carbCalories').textContent = Math.round(carbCalories) + ' 卡路里';
+    document.getElementById('carbGrams').textContent = Math.round(carbGrams);
+    document.getElementById('carbCalories').textContent = Math.round(carbCalories) + ' 卡';
     
-    document.getElementById('fatGrams').textContent = Math.round(fatGrams) + ' g';
-    document.getElementById('fatCalories').textContent = Math.round(fatCalories) + ' 卡路里';
+    document.getElementById('fatGrams').textContent = Math.round(fatGrams);
+    document.getElementById('fatCalories').textContent = Math.round(fatCalories) + ' 卡';
     
     // 显示结果区域
     document.getElementById('macroResults').classList.remove('hidden');
@@ -312,7 +339,7 @@ function validateMacroRatios() {
         document.getElementById('calculateMacros').textContent = `比例总和: ${total}% (需要100%)`;
     } else {
         document.getElementById('calculateMacros').disabled = false;
-        document.getElementById('calculateMacros').textContent = '计算营养素需求';
+        document.getElementById('calculateMacros').textContent = '计算需求';
     }
 }
 
@@ -333,12 +360,9 @@ function updateFoodStats() {
     const goalProgress = targetCalories > 0 ? Math.round((todayCalories / targetCalories) * 100) : 0;
     
     // 更新显示
-    document.getElementById('todayCalories').textContent = todayCalories + ' 卡路里';
-    document.getElementById('weekAvgCalories').textContent = weekAvgCalories + ' 卡路里';
+    document.getElementById('todayCalories').textContent = todayCalories;
+    document.getElementById('weekAvgCalories').textContent = weekAvgCalories;
     document.getElementById('goalProgress').textContent = goalProgress + '%';
-    
-    // 更新图表
-    updateCaloriesChart();
 }
 
 // 更新体重统计
@@ -356,12 +380,9 @@ function updateWeightStats() {
     const targetWeight = Math.round(currentWeight * 0.95 * 10) / 10;
     
     // 更新显示
-    document.getElementById('currentWeight').textContent = currentWeight + ' kg';
-    document.getElementById('weightChange').textContent = (weightChange > 0 ? '+' : '') + weightChange.toFixed(1) + ' kg';
-    document.getElementById('targetWeight').textContent = targetWeight + ' kg';
-    
-    // 更新图表
-    updateWeightChart();
+    document.getElementById('currentWeight').textContent = currentWeight;
+    document.getElementById('weightChange').textContent = (weightChange > 0 ? '+' : '') + weightChange.toFixed(1);
+    document.getElementById('targetWeight').textContent = targetWeight;
 }
 
 // 渲染今日食物列表
@@ -370,10 +391,12 @@ function renderTodayFoodList() {
     const todayFoods = foodRecords.filter(food => food.date === today);
     
     const container = document.getElementById('todayFoodList');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     if (todayFoods.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666;">今天还没有记录食物</p>';
+        container.innerHTML = '<p style="text-align: center; color: #666; font-size: 0.9rem;">今天还没有记录食物</p>';
         return;
     }
     
@@ -395,10 +418,12 @@ function renderTodayFoodList() {
 // 渲染体重历史
 function renderWeightHistory() {
     const container = document.getElementById('weightHistory');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     if (weightRecords.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666;">还没有体重记录</p>';
+        container.innerHTML = '<p style="text-align: center; color: #666; font-size: 0.9rem;">还没有体重记录</p>';
         return;
     }
     
@@ -410,7 +435,7 @@ function renderWeightHistory() {
         weightItem.className = 'weight-item';
         weightItem.innerHTML = `
             <div class="weight-info">
-                <strong>${record.weight} kg</strong> - ${record.date}
+                <strong>${record.weight} kg</strong> - ${formatDate(record.date)}
             </div>
             <div class="weight-actions">
                 <button class="btn-delete" onclick="deleteWeight(${record.id})">删除</button>
@@ -420,60 +445,30 @@ function renderWeightHistory() {
     });
 }
 
-// 渲染食物库
-function renderFoodBank() {
-    const container = document.getElementById('foodBankList');
+// 渲染快捷食物库
+function renderQuickFoodBank() {
+    const container = document.getElementById('quickFoodBank');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     if (foodBank.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666;">食物库为空，添加一些常用食物吧！</p>';
+        container.innerHTML = '<p style="text-align: center; color: #666; font-size: 0.9rem;">食物库为空</p>';
         return;
     }
     
-    foodBank.forEach(food => {
+    // 显示前6个常用食物
+    const quickFoods = foodBank.slice(0, 6);
+    
+    quickFoods.forEach(food => {
         const foodItem = document.createElement('div');
-        foodItem.className = 'food-bank-item';
+        foodItem.className = 'quick-food-item';
+        foodItem.onclick = () => useFoodFromBank(food.name, food.calories);
         foodItem.innerHTML = `
             <h4>${food.name}</h4>
-            <div class="nutrients">
-                <div class="nutrient-item">
-                    <div class="value">${food.calories}</div>
-                    <div class="label">卡路里/100g</div>
-                </div>
-                <div class="nutrient-item">
-                    <div class="value">${food.protein}</div>
-                    <div class="label">蛋白质(g)</div>
-                </div>
-                <div class="nutrient-item">
-                    <div class="value">${food.carbs}</div>
-                    <div class="label">碳水(g)</div>
-                </div>
-                <div class="nutrient-item">
-                    <div class="value">${food.fat}</div>
-                    <div class="label">脂肪(g)</div>
-                </div>
-            </div>
-            <div class="actions">
-                <button class="btn-use" onclick="useFoodFromBank('${food.name}', ${food.calories})">使用</button>
-                <button class="btn-delete" onclick="deleteFoodFromBank(${food.id})">删除</button>
-            </div>
+            <div class="calories">${food.calories} 卡/100g</div>
         `;
         container.appendChild(foodItem);
-    });
-}
-
-// 过滤食物库
-function filterFoodBank() {
-    const searchTerm = document.getElementById('foodSearch').value.toLowerCase();
-    const foodItems = document.querySelectorAll('.food-bank-item');
-    
-    foodItems.forEach(item => {
-        const foodName = item.querySelector('h4').textContent.toLowerCase();
-        if (foodName.includes(searchTerm)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
-        }
     });
 }
 
@@ -495,6 +490,7 @@ function deleteFood(id) {
     foodRecords = foodRecords.filter(food => food.id !== id);
     updateFoodStats();
     renderTodayFoodList();
+    updateDashboard();
     saveData();
 }
 
@@ -503,13 +499,6 @@ function deleteWeight(id) {
     weightRecords = weightRecords.filter(weight => weight.id !== id);
     updateWeightStats();
     renderWeightHistory();
-    saveData();
-}
-
-// 删除食物库项目
-function deleteFoodFromBank(id) {
-    foodBank = foodBank.filter(food => food.id !== id);
-    renderFoodBank();
     saveData();
 }
 
@@ -524,121 +513,26 @@ function getMealName(meal) {
     return mealNames[meal] || meal;
 }
 
+// 格式化日期
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+        return '今天';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return '昨天';
+    } else {
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+}
+
 // 初始化图表
 function initializeCharts() {
-    // 热量摄入图表
-    const caloriesCtx = document.getElementById('caloriesChart').getContext('2d');
-    window.caloriesChart = new Chart(caloriesCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: '每日热量摄入',
-                data: [],
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: '卡路里'
-                    }
-                }
-            }
-        }
-    });
-    
-    // 体重变化图表
-    const weightCtx = document.getElementById('weightChart').getContext('2d');
-    window.weightChart = new Chart(weightCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: '体重变化',
-                data: [],
-                borderColor: '#764ba2',
-                backgroundColor: 'rgba(118, 75, 162, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            },
-            scales: {
-                y: {
-                    title: {
-                        display: true,
-                        text: '体重 (kg)'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// 更新热量图表
-function updateCaloriesChart() {
-    if (!window.caloriesChart) return;
-    
-    // 获取最近7天的数据
-    const last7Days = [];
-    const last7DaysData = [];
-    
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        last7Days.push(dateStr);
-        
-        const dayFoods = foodRecords.filter(food => food.date === dateStr);
-        const dayCalories = dayFoods.reduce((sum, food) => sum + food.calories, 0);
-        last7DaysData.push(dayCalories);
-    }
-    
-    // 更新图表数据
-    window.caloriesChart.data.labels = last7Days.map(date => {
-        const d = new Date(date);
-        return `${d.getMonth() + 1}/${d.getDate()}`;
-    });
-    window.caloriesChart.data.datasets[0].data = last7DaysData;
-    window.caloriesChart.update();
-}
-
-// 更新体重图表
-function updateWeightChart() {
-    if (!window.weightChart || weightRecords.length === 0) return;
-    
-    // 按日期排序
-    const sortedRecords = [...weightRecords].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // 获取最近10条记录
-    const recentRecords = sortedRecords.slice(-10);
-    
-    // 更新图表数据
-    window.weightChart.data.labels = recentRecords.map(record => {
-        const d = new Date(record.date);
-        return `${d.getMonth() + 1}/${d.getDate()}`;
-    });
-    window.weightChart.data.datasets[0].data = recentRecords.map(record => record.weight);
-    window.weightChart.update();
+    // 图表功能暂时简化，专注于核心功能
+    console.log('图表初始化完成');
 }
 
 // 保存数据到本地存储
@@ -649,52 +543,124 @@ function saveData() {
         targetCalories,
         foodRecords,
         weightRecords,
-        foodBank
+        foodBank,
+        lastSaved: new Date().toISOString()
     };
-    localStorage.setItem('fitnessTrackerData', JSON.stringify(data));
+    
+    try {
+        localStorage.setItem('fitnessTrackerData', JSON.stringify(data));
+        console.log('数据已保存到本地存储');
+    } catch (error) {
+        console.error('保存数据失败:', error);
+    }
 }
 
 // 从本地存储加载数据
 function loadData() {
-    const savedData = localStorage.getItem('fitnessTrackerData');
-    if (savedData) {
-        const data = JSON.parse(savedData);
-        currentBMR = data.currentBMR || 0;
-        currentTDEE = data.currentTDEE || 0;
-        targetCalories = data.targetCalories || 0;
-        foodRecords = data.foodRecords || [];
-        weightRecords = data.weightRecords || [];
-        foodBank = data.foodBank || [];
-        
-        // 如果有BMR数据，显示结果
-        if (currentBMR > 0) {
-            document.getElementById('bmrValue').textContent = currentBMR;
-            document.getElementById('tdeeValue').textContent = currentTDEE;
-            document.getElementById('bmrResult').classList.remove('hidden');
-            document.getElementById('targetCaloriesInput').value = currentTDEE;
-        }
-        
-        // 如果有目标热量，显示目标达成
-        if (targetCalories > 0) {
-            document.getElementById('targetCalories').textContent = targetCalories;
-            document.getElementById('goalCalories').classList.remove('hidden');
+    try {
+        const savedData = localStorage.getItem('fitnessTrackerData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            currentBMR = data.currentBMR || 0;
+            currentTDEE = data.currentTDEE || 0;
+            targetCalories = data.targetCalories || 0;
+            foodRecords = data.foodRecords || [];
+            weightRecords = data.weightRecords || [];
+            foodBank = data.foodBank || [];
             
-            // 激活对应的目标按钮
-            if (targetCalories === currentTDEE) {
-                document.querySelector('[data-goal="maintain"]').classList.add('active');
-            } else if (targetCalories < currentTDEE) {
-                document.querySelector('[data-goal="lose"]').classList.add('active');
-            } else {
-                document.querySelector('[data-goal="gain"]').classList.add('active');
+            console.log('从本地存储加载数据成功');
+            
+            // 如果有BMR数据，显示结果
+            if (currentBMR > 0) {
+                document.getElementById('bmrValue').textContent = currentBMR;
+                document.getElementById('tdeeValue').textContent = currentTDEE;
+                document.getElementById('bmrResult').classList.remove('hidden');
+                document.getElementById('targetCaloriesInput').value = currentTDEE;
             }
+            
+            // 如果有目标热量，显示目标达成
+            if (targetCalories > 0) {
+                document.getElementById('targetCalories').textContent = targetCalories;
+                document.getElementById('goalCalories').classList.remove('hidden');
+                
+                // 激活对应的目标按钮
+                if (targetCalories === currentTDEE) {
+                    document.querySelector('[data-goal="maintain"]').classList.add('active');
+                } else if (targetCalories < currentTDEE) {
+                    document.querySelector('[data-goal="lose"]').classList.add('active');
+                } else {
+                    document.querySelector('[data-goal="gain"]').classList.add('active');
+                }
+            }
+            
+            // 更新营养素计算器的目标热量
+            document.getElementById('targetCaloriesInput').value = targetCalories || currentTDEE;
         }
         
-        // 更新营养素计算器的目标热量
-        document.getElementById('targetCaloriesInput').value = targetCalories || currentTDEE;
-    }
-    
-    // 添加一些示例数据（如果食物库为空）
-    if (foodBank.length === 0) {
+        // 添加一些示例数据（如果食物库为空）
+        if (foodBank.length === 0) {
+            foodBank = [
+                {
+                    id: 1,
+                    name: '鸡胸肉',
+                    calories: 165,
+                    protein: 31,
+                    carbs: 0,
+                    fat: 3.6,
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    name: '燕麦',
+                    calories: 389,
+                    protein: 16.9,
+                    carbs: 66.3,
+                    fat: 6.9,
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 3,
+                    name: '鸡蛋',
+                    calories: 155,
+                    protein: 12.6,
+                    carbs: 1.1,
+                    fat: 11.3,
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 4,
+                    name: '牛奶',
+                    calories: 42,
+                    protein: 3.4,
+                    carbs: 5.0,
+                    fat: 1.0,
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 5,
+                    name: '香蕉',
+                    calories: 89,
+                    protein: 1.1,
+                    carbs: 22.8,
+                    fat: 0.3,
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 6,
+                    name: '三文鱼',
+                    calories: 208,
+                    protein: 25.4,
+                    carbs: 0,
+                    fat: 12.4,
+                    timestamp: new Date().toISOString()
+                }
+            ];
+            saveData();
+        }
+        
+    } catch (error) {
+        console.error('加载数据失败:', error);
+        // 如果加载失败，使用默认数据
         foodBank = [
             {
                 id: 1,
@@ -704,27 +670,82 @@ function loadData() {
                 carbs: 0,
                 fat: 3.6,
                 timestamp: new Date().toISOString()
-            },
-            {
-                id: 2,
-                name: '燕麦',
-                calories: 389,
-                protein: 16.9,
-                carbs: 66.3,
-                fat: 6.9,
-                timestamp: new Date().toISOString()
-            },
-            {
-                id: 3,
-                name: '鸡蛋',
-                calories: 155,
-                protein: 12.6,
-                carbs: 1.1,
-                fat: 11.3,
-                timestamp: new Date().toISOString()
             }
         ];
+    }
+}
+
+// 定期自动保存数据
+setInterval(() => {
+    if (foodRecords.length > 0 || weightRecords.length > 0 || currentBMR > 0) {
         saveData();
     }
+}, 30000); // 每30秒自动保存一次
+
+// 页面卸载前保存数据
+window.addEventListener('beforeunload', () => {
+    saveData();
+});
+
+// 导出数据功能
+function exportData() {
+    const data = {
+        currentBMR,
+        currentTDEE,
+        targetCalories,
+        foodRecords,
+        weightRecords,
+        foodBank,
+        exportDate: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fitness-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+}
+
+// 导入数据功能
+function importData(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // 验证数据格式
+            if (data.foodRecords && data.weightRecords && data.foodBank) {
+                currentBMR = data.currentBMR || 0;
+                currentTDEE = data.currentTDEE || 0;
+                targetCalories = data.targetCalories || 0;
+                foodRecords = data.foodRecords;
+                weightRecords = data.weightRecords;
+                foodBank = data.foodBank;
+                
+                // 保存数据
+                saveData();
+                
+                // 更新显示
+                updateDashboard();
+                updateFoodStats();
+                renderTodayFoodList();
+                renderQuickFoodBank();
+                updateWeightStats();
+                renderWeightHistory();
+                
+                alert('数据导入成功！');
+            } else {
+                alert('数据格式不正确，请选择正确的导出文件。');
+            }
+        } catch (error) {
+            alert('导入失败：' + error.message);
+        }
+    };
+    reader.readAsText(file);
 }
 
