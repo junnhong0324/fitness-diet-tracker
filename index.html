@@ -8,277 +8,323 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>💪 健身饮食管理工具</h1>
-            <p>科学管理你的健身饮食，实现健康目标</p>
+    <div class="app-container">
+        <!-- 头部 -->
+        <header class="app-header">
+            <h1>💪 健身饮食管理</h1>
+            <p>科学管理，健康生活</p>
         </header>
 
-        <!-- 导航标签 -->
-        <nav class="tabs">
-            <button class="tab-btn active" data-tab="bmr">基础代谢率</button>
-            <button class="tab-btn" data-tab="food">食物记录</button>
-            <button class="tab-btn" data-tab="weight">体重追踪</button>
-            <button class="tab-btn" data-tab="nutrients">营养素计算</button>
-            <button class="tab-btn" data-tab="foodbank">食物库</button>
+        <!-- 紧凑的导航标签 -->
+        <nav class="app-tabs">
+            <button class="tab-btn active" data-tab="dashboard">
+                <span class="tab-icon">📊</span>
+                <span class="tab-text">概览</span>
+            </button>
+            <button class="tab-btn" data-tab="bmr">
+                <span class="tab-icon">🧮</span>
+                <span class="tab-text">BMR</span>
+            </button>
+            <button class="tab-btn" data-tab="food">
+                <span class="tab-icon">🍽️</span>
+                <span class="tab-text">食物</span>
+            </button>
+            <button class="tab-btn" data-tab="weight">
+                <span class="tab-icon">⚖️</span>
+                <span class="tab-text">体重</span>
+            </button>
+            <button class="tab-btn" data-tab="nutrients">
+                <span class="tab-icon">🥗</span>
+                <span class="tab-text">营养</span>
+            </button>
         </nav>
 
+        <!-- 概览页面 -->
+        <section id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <!-- 今日概览卡片 -->
+                <div class="overview-card">
+                    <h3>今日概览</h3>
+                    <div class="overview-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">目标热量</span>
+                            <span class="stat-value" id="todayTarget">0 卡</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已摄入</span>
+                            <span class="stat-value" id="todayConsumed">0 卡</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">剩余</span>
+                            <span class="stat-value" id="todayRemaining">0 卡</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="todayProgress"></div>
+                    </div>
+                </div>
+
+                <!-- 快速操作卡片 -->
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="switchTab('food')">
+                        <span class="btn-icon">➕</span>
+                        <span>添加食物</span>
+                    </button>
+                    <button class="quick-btn" onclick="switchTab('weight')">
+                        <span class="btn-icon">📝</span>
+                        <span>记录体重</span>
+                    </button>
+                    <button class="quick-btn" onclick="switchTab('bmr')">
+                        <span class="btn-icon">⚙️</span>
+                        <span>设置目标</span>
+                    </button>
+                </div>
+
+                <!-- 最近记录 -->
+                <div class="recent-records">
+                    <h3>最近记录</h3>
+                    <div id="recentFoodList" class="record-list"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- 基础代谢率计算器 -->
-        <section id="bmr" class="tab-content active">
-            <div class="card">
-                <h2>基础代谢率计算器</h2>
-                <form id="bmrForm">
+        <section id="bmr" class="tab-content">
+            <div class="compact-form">
+                <h2>基础代谢率计算</h2>
+                <form id="bmrForm" class="form-grid">
                     <div class="form-group">
-                        <label for="age">年龄:</label>
-                        <input type="number" id="age" required min="15" max="100">
+                        <label for="age">年龄</label>
+                        <input type="number" id="age" required min="15" max="100" placeholder="25">
                     </div>
                     <div class="form-group">
-                        <label for="gender">性别:</label>
+                        <label for="gender">性别</label>
                         <select id="gender" required>
                             <option value="male">男性</option>
                             <option value="female">女性</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="height">身高 (cm):</label>
-                        <input type="number" id="height" required min="100" max="250">
+                        <label for="height">身高 (cm)</label>
+                        <input type="number" id="height" required min="100" max="250" placeholder="170">
                     </div>
                     <div class="form-group">
-                        <label for="weight">体重 (kg):</label>
-                        <input type="number" id="weight" required min="30" max="300" step="0.1">
+                        <label for="weight">体重 (kg)</label>
+                        <input type="number" id="weight" required min="30" max="300" step="0.1" placeholder="65">
                     </div>
                     <div class="form-group">
-                        <label for="activity">活动水平:</label>
+                        <label for="activity">活动水平</label>
                         <select id="activity" required>
-                            <option value="1.2">久坐不动 (1.2)</option>
-                            <option value="1.375">轻度活动 (1.375)</option>
-                            <option value="1.55">中度活动 (1.55)</option>
-                            <option value="1.725">重度活动 (1.725)</option>
-                            <option value="1.9">极重度活动 (1.9)</option>
+                            <option value="1.2">久坐不动</option>
+                            <option value="1.375">轻度活动</option>
+                            <option value="1.55">中度活动</option>
+                            <option value="1.725">重度活动</option>
+                            <option value="1.9">极重度活动</option>
                         </select>
                     </div>
                     <button type="submit" class="btn-primary">计算BMR</button>
                 </form>
-                <div id="bmrResult" class="result-box hidden">
+                
+                <div id="bmrResult" class="result-card hidden">
                     <h3>计算结果</h3>
-                    <p><strong>基础代谢率 (BMR):</strong> <span id="bmrValue">0</span> 卡路里/天</p>
-                    <p><strong>每日总消耗 (TDEE):</strong> <span id="tdeeValue">0</span> 卡路里/天</p>
-                    <div class="goal-buttons">
-                        <button class="btn-goal" data-goal="lose">减脂 (-500卡)</button>
-                        <button class="btn-goal" data-goal="maintain">维持体重</button>
-                        <button class="btn-goal" data-goal="gain">增肌 (+300卡)</button>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="result-label">基础代谢率</span>
+                            <span class="result-value" id="bmrValue">0</span>
+                            <span class="result-unit">卡/天</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">每日总消耗</span>
+                            <span class="result-value" id="tdeeValue">0</span>
+                            <span class="result-unit">卡/天</span>
+                        </div>
                     </div>
-                    <p id="goalCalories" class="hidden"><strong>目标热量:</strong> <span id="targetCalories">0</span> 卡路里/天</p>
+                    <div class="goal-selector">
+                        <button class="goal-btn" data-goal="lose">减脂</button>
+                        <button class="goal-btn" data-goal="maintain">维持</button>
+                        <button class="goal-btn" data-goal="gain">增肌</button>
+                    </div>
+                    <div id="goalCalories" class="goal-result hidden">
+                        <span class="goal-label">目标热量:</span>
+                        <span class="goal-value" id="targetCalories">0</span>
+                        <span class="goal-unit">卡/天</span>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- 食物记录 -->
         <section id="food" class="tab-content">
-            <div class="card">
-                <h2>每日食物记录</h2>
-                <form id="foodForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="foodName">食物名称:</label>
-                            <input type="text" id="foodName" required>
+            <div class="food-section">
+                <!-- 快速添加食物 -->
+                <div class="quick-add-food">
+                    <h3>快速添加食物</h3>
+                    <form id="foodForm" class="compact-form">
+                        <div class="form-row">
+                            <input type="text" id="foodName" placeholder="食物名称" required>
+                            <input type="number" id="foodCalories" placeholder="热量" required min="0">
                         </div>
-                        <div class="form-group">
-                            <label for="foodCalories">热量 (卡路里):</label>
-                            <input type="number" id="foodCalories" required min="0">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="foodDate">日期:</label>
-                            <input type="date" id="foodDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="foodMeal">餐次:</label>
+                        <div class="form-row">
                             <select id="foodMeal" required>
                                 <option value="breakfast">早餐</option>
                                 <option value="lunch">午餐</option>
                                 <option value="dinner">晚餐</option>
                                 <option value="snack">加餐</option>
                             </select>
+                            <input type="date" id="foodDate" required>
+                        </div>
+                        <button type="submit" class="btn-primary">添加</button>
+                    </form>
+                </div>
+
+                <!-- 今日统计 -->
+                <div class="today-stats">
+                    <div class="stat-card">
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="todayCalories">0</span>
+                            <span class="stat-unit">卡路里</span>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary">添加食物</button>
-                </form>
-                
-                <div class="stats-row">
                     <div class="stat-card">
-                        <h4>今日总热量</h4>
-                        <p id="todayCalories">0 卡路里</p>
+                        <span class="stat-icon">📈</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="weekAvgCalories">0</span>
+                            <span class="stat-unit">本周平均</span>
+                        </div>
                     </div>
                     <div class="stat-card">
-                        <h4>本周平均</h4>
-                        <p id="weekAvgCalories">0 卡路里</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4>目标达成</h4>
-                        <p id="goalProgress">0%</p>
+                        <span class="stat-icon">🎯</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="goalProgress">0%</span>
+                            <span class="stat-unit">目标达成</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="chart-container">
-                    <h3>热量摄入趋势</h3>
-                    <canvas id="caloriesChart"></canvas>
+                <!-- 今日食物列表 -->
+                <div class="food-list-section">
+                    <h3>今日食物</h3>
+                    <div id="todayFoodList" class="food-list"></div>
                 </div>
 
-                <div class="food-list">
-                    <h3>今日食物记录</h3>
-                    <div id="todayFoodList"></div>
+                <!-- 食物库快捷使用 -->
+                <div class="food-bank-quick">
+                    <h3>常用食物</h3>
+                    <div id="quickFoodBank" class="quick-food-grid"></div>
                 </div>
             </div>
         </section>
 
         <!-- 体重追踪 -->
         <section id="weight" class="tab-content">
-            <div class="card">
-                <h2>体重追踪</h2>
-                <form id="weightForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="weightValue">体重 (kg):</label>
-                            <input type="number" id="weightValue" required min="20" max="300" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="weightDate">日期:</label>
+            <div class="weight-section">
+                <!-- 体重记录表单 -->
+                <div class="weight-form">
+                    <h3>记录体重</h3>
+                    <form id="weightForm" class="compact-form">
+                        <div class="form-row">
+                            <input type="number" id="weightValue" placeholder="体重 (kg)" required min="20" max="300" step="0.1">
                             <input type="date" id="weightDate" required>
                         </div>
-                    </div>
-                    <button type="submit" class="btn-primary">记录体重</button>
-                </form>
+                        <button type="submit" class="btn-primary">记录</button>
+                    </form>
+                </div>
 
-                <div class="stats-row">
+                <!-- 体重统计 -->
+                <div class="weight-stats">
                     <div class="stat-card">
-                        <h4>当前体重</h4>
-                        <p id="currentWeight">0 kg</p>
+                        <span class="stat-icon">⚖️</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="currentWeight">0</span>
+                            <span class="stat-unit">kg</span>
+                        </div>
                     </div>
                     <div class="stat-card">
-                        <h4>变化趋势</h4>
-                        <p id="weightChange">0 kg</p>
+                        <span class="stat-icon">📊</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="weightChange">0</span>
+                            <span class="stat-unit">变化</span>
+                        </div>
                     </div>
                     <div class="stat-card">
-                        <h4>目标体重</h4>
-                        <p id="targetWeight">0 kg</p>
+                        <span class="stat-icon">🎯</span>
+                        <div class="stat-info">
+                            <span class="stat-value" id="targetWeight">0</span>
+                            <span class="stat-unit">目标</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="chart-container">
-                    <h3>体重变化趋势</h3>
-                    <canvas id="weightChart"></canvas>
-                </div>
-
-                <div class="weight-list">
-                    <h3>体重记录历史</h3>
-                    <div id="weightHistory"></div>
+                <!-- 体重历史 -->
+                <div class="weight-history">
+                    <h3>体重历史</h3>
+                    <div id="weightHistory" class="weight-list"></div>
                 </div>
             </div>
         </section>
 
         <!-- 营养素计算器 -->
         <section id="nutrients" class="tab-content">
-            <div class="card">
-                <h2>营养素需求计算</h2>
-                <div class="nutrient-calculator">
-                    <div class="form-group">
-                        <label for="targetCaloriesInput">目标热量 (卡路里):</label>
-                        <input type="number" id="targetCaloriesInput" placeholder="从BMR计算器获取">
+            <div class="nutrients-section">
+                <div class="macro-calculator">
+                    <h3>营养素需求计算</h3>
+                    <div class="input-group">
+                        <label for="targetCaloriesInput">目标热量</label>
+                        <input type="number" id="targetCaloriesInput" placeholder="从BMR获取">
                     </div>
                     
-                    <div class="form-group">
-                        <label for="goalType">目标类型:</label>
-                        <select id="goalType">
-                            <option value="lose">减脂</option>
-                            <option value="maintain">维持体重</option>
-                            <option value="gain">增肌</option>
-                        </select>
-                    </div>
-
                     <div class="macro-ratios">
-                        <h3>宏量营养素比例</h3>
-                        <div class="macro-inputs">
-                            <div class="macro-input">
-                                <label for="proteinRatio">蛋白质 (%)</label>
+                        <h4>宏量营养素比例</h4>
+                        <div class="ratio-inputs">
+                            <div class="ratio-input">
+                                <label>蛋白质</label>
                                 <input type="number" id="proteinRatio" value="25" min="10" max="50">
+                                <span class="ratio-unit">%</span>
                             </div>
-                            <div class="macro-input">
-                                <label for="carbRatio">碳水化合物 (%)</label>
+                            <div class="ratio-input">
+                                <label>碳水</label>
                                 <input type="number" id="carbRatio" value="45" min="20" max="70">
+                                <span class="ratio-unit">%</span>
                             </div>
-                            <div class="macro-input">
-                                <label for="fatRatio">脂肪 (%)</label>
+                            <div class="ratio-input">
+                                <label>脂肪</label>
                                 <input type="number" id="fatRatio" value="30" min="15" max="50">
+                                <span class="ratio-unit">%</span>
                             </div>
                         </div>
-                        <button id="calculateMacros" class="btn-primary">计算营养素需求</button>
+                        <button id="calculateMacros" class="btn-primary">计算需求</button>
                     </div>
 
                     <div id="macroResults" class="macro-results hidden">
-                        <h3>每日营养素需求</h3>
+                        <h4>每日营养素需求</h4>
                         <div class="macro-cards">
                             <div class="macro-card protein">
-                                <h4>蛋白质</h4>
-                                <p id="proteinGrams">0 g</p>
-                                <p id="proteinCalories">0 卡路里</p>
+                                <h5>蛋白质</h5>
+                                <div class="macro-value">
+                                    <span id="proteinGrams">0</span>
+                                    <span class="macro-unit">g</span>
+                                </div>
+                                <span class="macro-calories" id="proteinCalories">0 卡</span>
                             </div>
                             <div class="macro-card carbs">
-                                <h4>碳水化合物</h4>
-                                <p id="carbGrams">0 g</p>
-                                <p id="carbCalories">0 卡路里</p>
+                                <h5>碳水化合物</h5>
+                                <div class="macro-value">
+                                    <span id="carbGrams">0</span>
+                                    <span class="macro-unit">g</span>
+                                </div>
+                                <span class="macro-calories" id="carbCalories">0 卡</span>
                             </div>
                             <div class="macro-card fat">
-                                <h4>脂肪</h4>
-                                <p id="fatGrams">0 g</p>
-                                <p id="fatCalories">0 卡路里</p>
+                                <h5>脂肪</h5>
+                                <div class="macro-value">
+                                    <span id="fatGrams">0</span>
+                                    <span class="macro-unit">g</span>
+                                </div>
+                                <span class="macro-calories" id="fatCalories">0 卡</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 食物库 -->
-        <section id="foodbank" class="tab-content">
-            <div class="card">
-                <h2>常用食物库</h2>
-                <form id="foodBankForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bankFoodName">食物名称:</label>
-                            <input type="text" id="bankFoodName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="bankFoodCalories">热量 (卡路里/100g):</label>
-                            <input type="number" id="bankFoodCalories" required min="0">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bankProtein">蛋白质 (g/100g):</label>
-                            <input type="number" id="bankProtein" min="0" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="bankCarbs">碳水化合物 (g/100g):</label>
-                            <input type="number" id="bankCarbs" min="0" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="bankFat">脂肪 (g/100g):</label>
-                            <input type="number" id="bankFat" min="0" step="0.1">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-primary">添加到食物库</button>
-                </form>
-
-                <div class="search-box">
-                    <input type="text" id="foodSearch" placeholder="搜索食物...">
-                </div>
-
-                <div class="food-bank-list">
-                    <h3>食物库列表</h3>
-                    <div id="foodBankList"></div>
                 </div>
             </div>
         </section>
